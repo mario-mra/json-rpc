@@ -32,12 +32,18 @@ class Dispatcher(MutableMapping):
 
         """
         self.method_map = dict()
+        self.fallback = None
 
         if prototype is not None:
             self.build_method_map(prototype)
 
     def __getitem__(self, key):
-        return self.method_map[key]
+        try:
+            return self.method_map[key]
+        except KeyError as err:
+            if self.fallback:
+                return self.fallback
+            raise err
 
     def __setitem__(self, key, value):
         self.method_map[key] = value
@@ -66,6 +72,38 @@ class Dispatcher(MutableMapping):
         if prefix:
             prefix += '.'
         self.build_method_map(dict, prefix)
+
+    def fallback_method(self, f=None):
+        """ Set the default method to use in case .
+
+        Parameters
+        ----------
+        f : callable
+            Callable to be added.
+
+        Notes
+        -----
+        When used as a decorator keeps callable object unmodified.
+
+        Examples
+        --------
+
+        Use as method
+
+        >>> d = Dispatcher()
+        >>> d.fallback_method(lambda a, b: a + b)
+        <function __main__.<lambda>>
+
+        Or use as decorator
+
+        >>> d = Dispatcher()
+        >>> @d.fallback_method
+            def mymethod(*args, **kwargs):
+                print(args, kwargs)
+
+        """
+        self.fallback = f
+        return f
 
     def add_method(self, f=None, name=None):
         """ Add a method to the dispatcher.
