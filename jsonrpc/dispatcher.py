@@ -42,7 +42,7 @@ class Dispatcher(MutableMapping):
             return self.method_map[key]
         except KeyError as err:
             if self.fallback:
-                return self.fallback
+                return functools.partial(self.fallback, _method=key)
             raise err
 
     def __setitem__(self, key, value):
