@@ -19,18 +19,22 @@ logger = logging.getLogger(__name__)
 
 
 class JSONRPCAPI(object):
-    def __init__(self, dispatcher=None, check_content_type=True):
+    def __init__(self, dispatcher=None, check_content_type=True, auth=None, auth_err_msg=None):
         """
 
         :param dispatcher: methods dispatcher
         :param check_content_type: if True - content-type must be
             "application/json"
+        :param auth: Function to use to authenticate a request.
+        :param auth_err_msg: String to use when refusing unauthorized requests.
         :return:
 
         """
         self.dispatcher = dispatcher if dispatcher is not None \
             else Dispatcher()
         self.check_content_type = check_content_type
+        self.auth = auth
+        self.auth_err_msg = auth_err_msg
 
     def as_blueprint(self, name=None):
         blueprint = Blueprint(name if name else str(uuid4()), __name__)
@@ -45,6 +49,11 @@ class JSONRPCAPI(object):
 
     def jsonrpc(self):
         request_str = self._get_request_str()
+
+        if callable(self.auth):
+            if not self.auth():
+                return self.auth_err_msg, 403
+
         try:
             jsonrpc_request = JSONRPCRequest.from_json(request_str)
         except (TypeError, ValueError, JSONRPCInvalidRequestException):
