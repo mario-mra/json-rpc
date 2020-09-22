@@ -47,12 +47,8 @@ class JSONRPCAPI(object):
     def as_view(self):
         return self.jsonrpc
 
-    def jsonrpc(self):
+    def jsonrpc(self, *args, **kwargs):
         request_str = self._get_request_str()
-
-        if callable(self.auth):
-            if not self.auth():
-                return self.auth_err_msg, 403
 
         try:
             jsonrpc_request = JSONRPCRequest.from_json(request_str)
@@ -60,6 +56,10 @@ class JSONRPCAPI(object):
             response = JSONRPCResponseManager.handle(
                 request_str, self.dispatcher)
         else:
+            if callable(self.auth):
+                if not self.auth():
+                    return Response(response=self.auth_err_msg, status=403)
+
             response = JSONRPCResponseManager.handle_request(
                 jsonrpc_request, self.dispatcher)
 
